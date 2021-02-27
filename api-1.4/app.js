@@ -87,9 +87,9 @@ app.use(function (req, res, next) {
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// START SERVER /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-var server = http.createServer(app).listen(port, function () { });
+var server = http.createServer(app).listen(4000, function () { });
 logger.info('****************** SERVER STARTED ************************');
-logger.info('***************  http://%s:%s  ******************', host, port);
+logger.info('***************  http://%s:%s  ******************', host, 4000);
 server.timeout = 240000;
 
 function getErrorMessage(field) {
