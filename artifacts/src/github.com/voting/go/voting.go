@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "bytes"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -23,6 +23,7 @@ type SmartContract struct {
 type State struct {
 	BidStarted string `json:"bidStarted"`
 	RevealStarted string `json:"revealStarted"`
+	Breach string `json:"breach"`
 }
 
 type Commitment struct {
@@ -34,6 +35,7 @@ type Commitment struct {
 type PublicCommitment struct {
 	UserID int `json:"userID"`
 	RandomValue int `json:"randomValue"`
+	BidValue int `json:"bidValue"`
 }
 
 type Bid struct {
@@ -51,6 +53,8 @@ type Winner struct {
 	Winner string `json:"winner"`
 	Amount int `json:"amount"`
 }
+
+
 
 // Init ;  Method for initializing smart contract
 func (s *SmartContract) Init(APIstub shim.ChaincodeStubInterface) sc.Response {
@@ -84,6 +88,10 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 		return s.CheckIfWinner(APIstub, args)
 	case "breach":
 		return s.Breach(APIstub, args)
+	case "bringToPublic":
+		return s.BringToPublic(APIstub, args)
+	case "checkAll":
+		return s.CheckAll(APIstub, args)
 	default:
 		return shim.Error("Invalid Smart Contract function name.")
 	}
@@ -165,6 +173,11 @@ func (s *SmartContract) CheckIfWinner(APIstub shim.ChaincodeStubInterface, args 
 		winnerCandidates.SecondHighestBid = winnerCandidates.HighestBid
 		winnerCandidates.HighestBid = bidValue
 		winnerCandidates.HighestBidder = args[0]
+		winnerCandidatesAsBytes, _  = json.Marshal(winnerCandidates)
+		APIstub.PutPrivateData("auctionPrivateData", "WinnerCandidatesDetails", winnerCandidatesAsBytes)
+		var buffer bytes.Buffer
+		buffer.WriteString("[{\"Msg\":\"Bid Increased Event\"}]")
+		return shim.Success(buffer.Bytes())
 	} else if (len(winnerCandidates.SecondHighestBidder) == 0 || bidValue > winnerCandidates.SecondHighestBid) {
 		winnerCandidates.SecondHighestBid = bidValue
 		winnerCandidates.SecondHighestBidder = args[0]
@@ -193,7 +206,71 @@ func (s* SmartContract) DeclareWinner (APIstub shim.ChaincodeStubInterface, args
 
 // to be done
 func (s*SmartContract) Breach(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
-	return shim.Success(nil)
+	
+	//check all commitments
+	stateAsBytes, _ := APIstub.GetState("State")
+	state := State{}
+
+	json.Unmarshal(stateAsBytes, &state)
+	state.Breach = args[0]
+
+	stateAsBytes, _ = json.Marshal(state)
+	APIstub.PutState("State", stateAsBytes)
+	var buffer bytes.Buffer
+	buffer.WriteString("[{\"Msg\":\"Bring commitments to public\"}]")
+	return shim.Success(buffer.Bytes())
+}
+
+func (s*SmartContract) BringToPublic(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	publicCommitmentAsBytes,_ := APIstub.GetState(args[0])
+	publicCommitment := PublicCommitment{}
+
+	json.Unmarshal(publicCommitmentAsBytes, &publicCommitment)
+	publicCommitment.BidValue,err = strconv.Atoi(args[1])
+	return shim.Success(publicCommitmentAsBytes)
+}
+
+func (s*SmartContract) CheckAll(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	startKey := "p111"
+	endKey := "p999"
+
+	resultsIterator, err := APIstub.GetStateByRange(startKey, endKey)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	defer resultsIterator.Close()
+
+	winnerCandidatesAsBytes, _ := APIstub.GetPrivateData("auctionPrivateDetails", "WinnerCandidatesDetails")
+	winnerCandidates := WinnerCandidates{}
+
+	if(winnerCandidatesAsBytes != nil) {
+		json.Unmarshal(winnerCandidatesAsBytes, &winnerCandidates)
+	} 
+	var buffer bytes.Buffer
+
+	// bArrayMemberAlreadyWritten := false
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+
+		publicCommitmentAsBytes := []byte(queryResponse.Value)
+		publicCommitment := PublicCommitment{}
+		json.Unmarshal(publicCommitmentAsBytes, &publicCommitment)
+		if(publicCommitment.BidValue > winnerCandidates.HighestBid) {
+			buffer.WriteString("[{\"Msg\":\"Accuse " + winnerCandidates.HighestBidder+"\"}]")
+			return shim.Success(buffer.Bytes())
+		}
+		
+	}
+
+	stateAsBytes, _ := APIstub.GetState("State")
+	state := State{}
+
+	json.Unmarshal(stateAsBytes, &state)
+	buffer.WriteString("[{\"Msg\":\"Penalize " + state.Breach+"\"}]")
+	return shim.Success(buffer.Bytes())
 }
 
 func main() {

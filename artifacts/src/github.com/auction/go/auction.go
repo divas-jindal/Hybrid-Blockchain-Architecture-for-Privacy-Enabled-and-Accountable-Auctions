@@ -24,6 +24,7 @@ type SmartContract struct {
 type State struct {
 	BidStarted string `json:"bidStarted"`
 	RevealStarted string `json:"revealStarted"`
+	Breach string `json:"breach"`
 }
 
 type Commitment struct {
@@ -55,7 +56,7 @@ type Winner struct {
 
 // Init ;  Method for initializing smart contract
 func (s *SmartContract) Init(APIstub shim.ChaincodeStubInterface) sc.Response {
-	state := State{BidStarted: "false", RevealStarted: "false"}
+	state := State{BidStarted: "false", RevealStarted: "false", Breach: "false"}
 	stateAsBytes, _ := json.Marshal(state)
 	APIstub.PutState("State", stateAsBytes)
 
@@ -99,7 +100,6 @@ func (s *SmartContract) BidStart(APIstub shim.ChaincodeStubInterface) sc.Respons
 
 	json.Unmarshal(stateAsBytes, &state)
 	state.BidStarted = "true"
-	state.RevealStarted = "false"
 
 	stateAsBytes, _ = json.Marshal(state)
 	APIstub.PutState("State", stateAsBytes)
@@ -156,7 +156,9 @@ func (s* SmartContract) RevealCommitment(APIstub shim.ChaincodeStubInterface, ar
 		// CheckIfWinner(APIstub, args[0], commitment.BidValue);
 		return shim.Success(commitmentAsBytes);
 	} else {
-		return shim.Error("Fraud")	
+		// var buffer bytes.Buffer
+		// buffer.WriteString("[{\"Msg\":\"Fraud "+strconv.Itoa(commitment.UserID)+"\"}]")
+		return shim.Error("[{\"Msg\":\"Fraud "+strconv.Itoa(commitment.UserID)+"\"}]")
 	}
 }
 
