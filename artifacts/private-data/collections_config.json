@@ -1,15 +1,30 @@
 [
      {
-          "name": "collectionCars",
-          "policy": "OR('Org1MSP.member', 'Org2MSP.member')",
+          "name": "votingPrivateDetailsOrg2",
+          "policy": "OR('Org2MSP.member')",
           "requiredPeerCount": 0,
           "maxPeerCount": 3,
           "blockToLive": 1000000,
           "memberOnlyRead": true,
-          "memberOnlyWrite": true
+          "memberOnlyWrite": true,
+          "endorsementPolicy": {
+               "signaturePolicy": "OR('Org2MSP.member')"
+          }
      },
      {
-          "name": "collectionCarPrivateDetails",
+          "name": "votingPrivateDetailsOrg3",
+          "policy": "OR('Org3MSP.member')",
+          "requiredPeerCount": 0,
+          "maxPeerCount": 3,
+          "blockToLive": 1000000,
+          "memberOnlyRead": true,
+          "memberOnlyWrite": true,
+          "endorsementPolicy": {
+               "signaturePolicy": "OR('Org3MSP.member')"
+          }
+     },
+     {
+          "name": "auctionPrivateDetails",
           "policy": "OR('Org1MSP.member')",
           "requiredPeerCount": 0,
           "maxPeerCount": 3,
