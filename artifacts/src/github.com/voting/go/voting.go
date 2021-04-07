@@ -62,6 +62,19 @@ func (s *SmartContract) Init(APIstub shim.ChaincodeStubInterface) sc.Response {
 	commitment := Commitment{}
 	commitmentAsBytes,_ := json.Marshal(commitment)
 	APIstub.PutPrivateData("VotingPrivateData", "myCommitment", commitmentAsBytes)
+
+	state := State{}
+	stateAsBytes,_ := json.Marshal(state)
+	APIstub.PutState("State",stateAsBytes)
+
+	winnerCandidates := WinnerCandidates{}
+	winnerCandidates.HighestBidder = "1"
+	winnerCandidates.HighestBid = 123
+	winnerCandidates.SecondHighestBidder = "2"
+	winnerCandidates.SecondHighestBid = 111
+	winnerCandidatesAsBytes, _ := json.Marshal(winnerCandidates)
+	APIstub.PutPrivateData("auctionPrivateDetails", "WinnerCandidatesDetails", winnerCandidatesAsBytes)
+
 	return shim.Success(nil)
 }
 
